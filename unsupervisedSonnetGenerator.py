@@ -8,7 +8,7 @@ import HMM
 
 if __name__ == '__main__':
     n_states_grid = range(1, 10)
-    stanzas, word_map, id_map = Utility.load_text('../data/shakespeare.txt')
+    stanzas, word_map, id_map = Utility.load_text('data/shakespeare.txt')
     model1 = HMM.unsupervised_HMM(stanzas, 5, 100)
     model2 = HMM.unsupervised_HMM(stanzas, 10, 100)
     print('HMM with 5 states:')
