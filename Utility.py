@@ -30,7 +30,7 @@ class Utility:
         stanzas = []
         word_map = {}
         word_counter = 0
-        pattern = re.compile('[\W_]+', re.UNICODE)
+        pattern = re.compile(r'[\W_]+', re.UNICODE)
 
         with open(filename, 'r') as f:
             def parse_stanza(file, num_lines):
@@ -38,7 +38,7 @@ class Utility:
                 for i in range(num_lines):
                     stanza_words.extend(file.readline().strip().split(' '))
                 for i in range(len(stanza_words)):
-                    pattern.sub('', stanza_words[i])
+                    stanza_words[i] = pattern.sub('', stanza_words[i])
                 return stanza_words
 
             stanza_seq = []
