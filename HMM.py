@@ -320,7 +320,7 @@ class HiddenMarkovModel:
         print(N_iters)
         for iters in range(N_iters):
             if iters % 1 == 0:
-                print('\r Iteration {}% Complete'.format(round(iters / N_iters, 2) * 100), end='')
+                print('\r Iteration {}% Complete'.format((100 * iters) // N_iters), end='')
 
             A_num = [[0. for _ in range(self.L)] for _ in range(self.L)]
             O_num = [[0. for _ in range(self.D)] for _ in range(self.L)]
