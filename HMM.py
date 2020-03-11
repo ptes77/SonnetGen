@@ -408,8 +408,14 @@ class HiddenMarkovModel:
     def generate_sonnet(self, id_map):
         # Generate 14 lines of roughly 10 syllables
         # TODO: each line must have only 10 syllables
-        for i in range(14):
-            return '\n'.join([emission_to_sentence(self.generate_emission(8)[0], id_map) for _ in range(14)])
+        sentence = []
+        for i in range(1, 15):
+            sentence.append(emission_to_sentence(self.generate_emission(8)[0], id_map))
+            if i % 4 == 0 or i == 14:
+                sentence.append('.\n')
+            else:
+                sentence.append(',\n')
+        return ''.join(sentence)
 
     def probability_alphas(self, x):
         '''
