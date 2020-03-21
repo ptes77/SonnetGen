@@ -27,6 +27,20 @@ def parse_syllables(syllables_file):
     return word_corpus, word_to_syllable
 
 
+def get_possible_word(emission, syllable_info, id_map, curr_syllables, rhyme_dict, max_syllables):
+    word = id_map[emission]
+    possible_syllables = syllable_info[word]
+    for poss in possible_syllables:
+        if poss[0] == 'E':
+            if int(poss[1]) + curr_syllables == max_syllables and len(rhyme_dict[word]) > 0:
+                return word, int(poss[1])
+        else:
+            if int(poss) + curr_syllables < max_syllables or \
+                    int(poss) + curr_syllables == max_syllables and len(rhyme_dict[word]) > 0:
+                return word, int(poss)
+    return None
+
+
 def mask():
     # Parameters.
     r = 128
@@ -85,6 +99,8 @@ def states_to_wordclouds(hmm, obs_map, max_words=50, show=True):
         sentence = [obs_map_r[j] for j in obs_lst]
         sentence_str = ' '.join(sentence)
 
+        if sentence_str == '':
+            continue
         wordclouds.append(text_to_wordcloud(sentence_str, max_words=max_words, title='State %d' % i, show=show))
 
     return wordclouds

@@ -36,7 +36,7 @@
 
 import random
 from numpy.random import choice
-from HMM_helper import emission_to_sentence
+from HMM_helper import emission_to_sentence, get_possible_word
 
 
 class HiddenMarkovModel:
@@ -405,17 +405,127 @@ class HiddenMarkovModel:
 
         return emission, states
 
-    def generate_sonnet(self, id_map):
-        # Generate 14 lines of roughly 10 syllables
-        # TODO: each line must have only 10 syllables
-        sentence = []
+
+    def generate_line(self, syllable_info, id_map, rhyme_dict, rhyme, num_syllables):
+        '''
+        Strategy is to generate pairs of rhyming lines and recombine them afterwards
+        This method synergizes with our parsing-by-line preprocessing.
+
+        :param syllable_info: dictionary of words to potential syllable count
+        :param id_map: dictionary of word id and actual word
+        :param rhyme_dict: dictionary of words to words that rhyme
+        :param rhyme: boolean that specifies whether to produce two rhyming lines
+        :param num_syllables: number of syllables in the line
+        :return: array containing words of sentence
+        '''
+        def generate_single_line(used_syllables):
+            syllable_count = used_syllables
+            line = []
+            state = random.choice(range(self.L))
+            # Generate line that takes into account number of syllables already used
+            while syllable_count < num_syllables:
+                poss_word = None
+                transition = self.A[state]
+                observation = self.O[state]
+                while not poss_word:
+                    emission = int(choice(range(self.D), 1, p=observation))
+                    poss_word = get_possible_word(emission, syllable_info, id_map, \
+                                                  syllable_count, rhyme_dict, num_syllables)
+
+                # Capitalize all standalone 'I's
+                if poss_word[0] == 'i':
+                    line.append('I')
+                else:
+                    line.append(poss_word[0])
+                syllable_count += poss_word[1]
+                state = int(choice(range(self.L), 1, p=transition))
+            last_word = line[-1]
+            return line, last_word
+
+        used_syllables = 0
+        possible_rhymes = []
+        # Sometimes the word does not have a corresponding rhyme
+        # that is in the allowed words dictionary, so we use
+        while len(possible_rhymes) == 0:
+            first_line, first_rhyme = generate_single_line(used_syllables)
+            if not rhyme:
+                return first_line
+            possible_rhymes = rhyme_dict[first_rhyme]
+
+        second_rhyme = random.choice(possible_rhymes)
+        second_rhyme_syllable_info = syllable_info[second_rhyme]
+
+        # Determine the number of syllables in the second line
+        # that is needed for a total of 10 syllables.
+        for poss_rhyme in second_rhyme_syllable_info:
+            if poss_rhyme[0] == 'E':
+                used_syllables = int(poss_rhyme[1])
+        if used_syllables == 0:
+            used_syllables = int(random.choice(second_rhyme_syllable_info))
+
+        second_line, _ = generate_single_line(used_syllables)
+        second_line.append(second_rhyme)
+
+        return first_line, second_line
+
+
+    def generate_sonnet(self, id_map, syllable_info, rhyme_dict):
+        '''
+        Generates a sonnet with 14 lines and 10 syllables per line on
+        a trained HMM.
+        :param id_map: dictionary of word id and actual word
+        :param syllable_info: dictionary of words to potential syllable count
+        :param rhyme_dict: dictionary of words to words that rhyme
+        :return: a string that prints as a 14-line sonnet
+        '''
+        sonnet = []
+        # Generate 7 pairs of rhyming lines
+        for i in range(7):
+            rhyming_lines = self.generate_line(syllable_info, id_map, rhyme_dict, True, 10)
+            for j in range(len(rhyming_lines)):
+                rhyming_lines[j][0] = rhyming_lines[j][0].capitalize()
+                sonnet.append(' '.join(rhyming_lines[j]))
+
+        rhyming_sonnet = []
+        order = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 13]
+        # Order the rhyming lines so that the sonnet has a rhyme
+        # scheme of ababcdcdefefgg.
         for i in range(1, 15):
-            sentence.append(emission_to_sentence(self.generate_emission(8)[0], id_map))
+            rhyming_sonnet.append(sonnet[order[i - 1]])
+            # Add punctuation that is similar to that of
+            # Shakespearean sonnets
             if i % 4 == 0 or i == 14:
-                sentence.append('.\n')
+                rhyming_sonnet.append('.\n')
             else:
-                sentence.append(',\n')
-        return ''.join(sentence)
+                rhyming_sonnet.append(',\n')
+        return ''.join(rhyming_sonnet)
+
+
+    def generate_haiku(self, id_map, syllable_info, rhyme, rhyme_dict):
+        '''
+        Generate a haiku with three lines and 5-7-5 syllable pattern.
+        A flag determines whether the haiku follows the aba rhyme scheme.
+        :param id_map: dictionary of word id and actual word
+        :param syllable_info: dictionary of words to potential syllable count
+        :param rhyme: boolean that specifies whether the haiku rhymes
+        :param rhyme_dict: dictionary of words to words that rhyme
+        :return: a string that prints out a 3-line haiku
+        '''
+
+        haiku = []
+        if rhyme:
+            line1, line3 = self.generate_line(syllable_info, id_map, rhyme_dict, True, 5)
+            line2 = self.generate_line(syllable_info, id_map, rhyme_dict, False, 7)
+        else:
+            line1 = self.generate_line(syllable_info, id_map, rhyme_dict, False, 5)
+            line2 = self.generate_line(syllable_info, id_map, rhyme_dict, False, 7)
+            line3 = self.generate_line(syllable_info, id_map, rhyme_dict, False, 5)
+        lines = [line1, line2, line3]
+        for i in range(len(lines)):
+            lines[i][0] = lines[i][0].capitalize()
+            lines[i] = ' '.join(lines[i])
+        haiku = [lines[0], ',\n', lines[1], ',\n', lines[2], '.\n']
+        return ''.join(haiku)
 
     def probability_alphas(self, x):
         '''
