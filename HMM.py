@@ -527,6 +527,7 @@ class HiddenMarkovModel:
         haiku = [lines[0], ',\n', lines[1], ',\n', lines[2], '.\n']
         return ''.join(haiku)
 
+
     def probability_alphas(self, x):
         '''
         Finds the maximum probability of a given input sequence using
